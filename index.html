@@ -3,183 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Character Mapping Studio</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Character Relationship Map</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <!-- Cytoscape.js for graph rendering -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
 </head>
-<body>
+<body class="bg-gray-50 h-screen flex flex-col overflow-hidden">
 
     <!-- Top Toolbar -->
-    <header class="toolbar">
-        <div class="toolbar-left">
-            <select id="map-selector" class="dropdown">
-                <option value="default">Select a Map...</option>
-                <option value="new">+ Create New Map</option>
-            </select>
-            <span class="divider">|</span>
-            <label for="edge-slider">Relationship Length:</label>
-            <input type="range" id="edge-slider" min="50" max="300" value="150">
-            <span class="divider">|</span>
-            <span id="stats-counter">0 characters, 0 relationships</span>
-            <button id="clear-selection-btn" class="btn secondary">Clear Selection</button>
+    <header class="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shadow-sm z-10">
+        <div class="flex items-center space-x-6">
+            <h1 class="text-xl font-bold text-gray-800">Relationship Map</h1>
+            <div class="flex items-center space-x-2 text-sm text-gray-600">
+                <span>Relationship Length:</span>
+                <input type="range" id="edgeLengthSlider" min="50" max="300" value="150" class="w-28 cursor-pointer">
+            </div>
+            <span id="statsLabel" class="text-xs font-medium bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">0 characters, 0 relationships</span>
+            <button id="clearSelectionBtn" class="text-xs text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded transition">Clear Selection</button>
         </div>
-        
-        <div class="toolbar-right">
-            <button id="github-config-btn" class="btn outline" title="Configure Cloud Sync">☁️ Setup Sync</button>
-            <button id="export-json-btn" class="btn outline">📤 Export JSON</button>
-            <button id="import-json-btn" class="btn outline">📥 Import JSON</button>
+        <div class="flex items-center space-x-3">
+            <button id="exportJsonBtn" class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm px-4 py-2 rounded-lg font-medium shadow-sm transition">Export JSON</button>
+            <label class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg font-medium shadow-sm cursor-pointer transition">
+                Import JSON
+                <input type="file" id="importJsonInput" accept=".json" class="hidden">
+            </label>
         </div>
     </header>
 
     <!-- Main Workspace -->
-    <main class="workspace">
-        <!-- Legend (Bottom Left) -->
-        <div id="legend" class="floating-panel">
-            <h4>RELATIONSHIP TYPES</h4>
-            <ul>
-                <li><span class="dot color-ally"></span> Ally/Friend</li>
-                <li><span class="dot color-authority"></span> Authority/Power</li>
-                <li><span class="dot color-family"></span> Family</li>
-                <li><span class="dot color-rival"></span> Rival/Enemy</li>
-                <li><span class="dot color-romantic"></span> Romantic</li>
-                <li><span class="dot color-other"></span> Other</li>
-            </ul>
-        </div>
+    <div class="flex flex-1 overflow-hidden">
+        <!-- Canvas Graph Area -->
+        <div id="cy" class="flex-1 bg-slate-50 relative"></div>
 
-        <!-- Graph Canvas -->
-        <div id="cy"></div>
-
-        <!-- Sidebar (Right) -->
-        <aside id="sidebar" class="sidebar">
-            <div id="sidebar-content" class="hidden">
-                <div class="sidebar-header">
-                    <img id="sidebar-avatar" src="" alt="Avatar" class="avatar-large" style="display: none;">
-                    <div class="header-text">
-                        <h2 id="sidebar-name">Character Name</h2>
-                        <span id="sidebar-archetype" class="badge">Archetype</span>
-                    </div>
+        <!-- Right Control Panel -->
+        <aside class="w-96 bg-white border-l border-gray-200 flex flex-col shadow-lg z-10">
+            <div id="panelContent" class="flex-1 overflow-y-auto p-6">
+                <!-- Dynamic content injected via app.js -->
+                <div class="text-center py-12 text-gray-500">
+                    <p class="text-sm">Select a character or click below to add a new one.</p>
+                    <button id="addCharacterInitialBtn" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg font-medium shadow transition">+ Add Character</button>
                 </div>
-
-                <div class="form-group">
-                    <label>CHARACTER OVERVIEW</label>
-                    <textarea id="edit-overview" rows="4" placeholder="Brief character summary..."></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label>CONNECTED RELATIONSHIPS</label>
-                    <ul id="connected-list" class="relationship-list">
-                        <!-- Populated dynamically -->
-                    </ul>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group half">
-                        <label>In-Circle Name</label>
-                        <input type="text" id="edit-abbr" placeholder="e.g., Valjean">
-                    </div>
-                    <div class="form-group half">
-                        <label>Archetype / Role Tag</label>
-                        <input type="text" id="edit-role" placeholder="e.g., Protagonist">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Avatar Image</label>
-                    <div id="drop-zone" class="drop-zone">
-                        Click to browse or drag image here
-                        <input type="file" id="file-input" accept="image/png, image/jpeg, image/webp" hidden>
-                    </div>
-                </div>
-
-                <div class="action-buttons">
-                    <button id="btn-save-character" class="btn primary full-width">Update Character</button>
-                    <button id="btn-delete-character" class="btn danger full-width">Delete</button>
-                </div>
-
-                <hr class="divider-line">
-
-                <div class="form-group">
-                    <label>MANAGE RELATIONSHIP LINK</label>
-                    <select id="link-target" class="full-width dropdown">
-                        <option value="">-- Select Target --</option>
-                    </select>
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group half">
-                        <select id="link-type" class="dropdown">
-                            <option value="family">Family</option>
-                            <option value="ally">Ally/Friend</option>
-                            <option value="rival">Rival/Enemy</option>
-                            <option value="authority">Authority/Power</option>
-                            <option value="romantic">Romantic</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-                    <div class="form-group half">
-                        <input type="text" id="link-label" placeholder="Custom Label (Optional)">
-                    </div>
-                </div>
-                <button id="btn-add-link" class="btn secondary full-width">Add / Update Link</button>
-            </div>
-            
-            <div id="sidebar-empty" class="empty-state">
-                <p>Select a character or click below to add a new one.</p>
-                <button id="btn-new-character" class="btn primary">+ Add Character</button>
             </div>
         </aside>
-    </main>
-
-    <!-- Import JSON Modal (Tabbed) -->
-    <div id="modal-import" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Import Map Data</h3>
-                <button class="close-modal">&times;</button>
-            </div>
-            <div class="tabs">
-                <button class="tab-btn active" data-tab="tab-paste">Paste JSON</button>
-                <button class="tab-btn" data-tab="tab-upload">Upload File</button>
-            </div>
-            <div id="tab-paste" class="tab-content active">
-                <textarea id="import-json-text" rows="10" placeholder="Paste your map JSON here..."></textarea>
-                <button id="btn-import-text" class="btn primary full-width">Render Map</button>
-            </div>
-            <div id="tab-upload" class="tab-content hidden">
-                <div class="drop-zone" id="json-drop-zone">
-                    Click to select .json file or drag here
-                    <input type="file" id="json-file-input" accept=".json" hidden>
-                </div>
-            </div>
-            <div id="import-error" class="error-text hidden">Invalid JSON format.</div>
-        </div>
     </div>
 
-    <!-- GitHub Sync Modal -->
-    <div id="modal-github" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>GitHub Cloud Sync</h3>
-                <button class="close-modal">&times;</button>
-            </div>
-            <p class="modal-desc">Securely back up your maps to private GitHub Gists.</p>
-            <div class="form-group">
-                <label>Personal Access Token (PAT)</label>
-                <input type="password" id="gh-token" placeholder="ghp_...">
-                <small>Requires 'gist' permission.</small>
-            </div>
-            <div class="form-group">
-                <label>Gist ID (Optional - For loading existing)</label>
-                <input type="text" id="gh-gist-id" placeholder="Leave blank to create new">
-            </div>
-            <button id="btn-save-github" class="btn primary full-width">Save & Sync</button>
-        </div>
-    </div>
-
-    <!-- Application Scripts (To be created in upcoming phases) -->
-    <script src="js/data.js"></script>
-    <script src="js/graph.js"></script>
-    <script src="js/sidebar.js"></script>
+    <!-- Application Script -->
+    <script src="app.js"></script>
 </body>
 </html>
