@@ -2,9 +2,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let cy;
     let selectedNodeId = null;
 
+    // Pre-loaded with starter characters so your canvas isn't blank
     let graphData = {
-        nodes: [],
-        edges: []
+        nodes: [
+            { id: 'c_1', name: 'Alexander Sterling', abbr: 'AS', role: 'Protagonist', overview: 'The central figure of the narrative.', image: '' },
+            { id: 'c_2', name: 'Elena Vance', abbr: 'EV', role: 'Ally', overview: 'A trusted confidante and strategist.', image: '' },
+            { id: 'c_3', name: 'Lord Morvath', abbr: 'LM', role: 'Antagonist', overview: 'Seeking control over the syndicate.', image: '' }
+        ],
+        edges: [
+            { id: 'e_1_2', source: 'c_1', target: 'c_2', type: 'Ally/Friend', label: 'Trusted Partners' },
+            { id: 'e_1_3', source: 'c_1', target: 'c_3', type: 'Rival/Enemy', label: 'Bitter Rivals' }
+        ]
     };
 
     function initCy() {
@@ -57,6 +65,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         'text-rotation': 'autorotate',
                         'color': '#64748b'
                     }
+                },
+                {
+                    selector: '.faded',
+                    style: {
+                        'opacity': 0.25
+                    }
+                },
+                {
+                    selector: '.highlighted',
+                    style: {
+                        'opacity': 1
+                    }
                 }
             ],
             elements: []
@@ -76,6 +96,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 cy.elements().removeClass('highlighted faded');
             }
         });
+
+        updateGraph();
     }
 
     function updateGraph() {
@@ -211,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <option value="Rival/Enemy">Rival/Enemy</option>
                             <option value="Other">Other</option>
                         </select>
-                        <input type="text" id="relCustomLabel" placeholder="Custom Label (e.g. Father & Son)" class="w-full text-sm border border-gray-300 rounded-lg p-2 bg-white">
+                        <input type="text" id="relCustomLabel" placeholder="Custom Label (e.g. Mentor & Mentee)" class="w-full text-sm border border-gray-300 rounded-lg p-2 bg-white">
                         <button id="addRelBtn" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-sm py-2 rounded-lg font-medium transition">Add / Update Link</button>
                     </div>
                 </div>
@@ -357,6 +379,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (Array.isArray(parsed)) {
                     graphData.nodes = parsed.filter(item => item.group === 'nodes').map(i => i.data);
                     graphData.edges = parsed.filter(item => item.group === 'edges').map(i => i.data);
+                } else if (parsed.nodes && parsed.edges) {
+                    graphData.nodes = parsed.nodes;
+                    graphData.edges = parsed.edges;
                 } else if (parsed.characters && parsed.relationships) {
                     graphData.nodes = parsed.characters;
                     graphData.edges = parsed.relationships;
@@ -376,5 +401,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     initCy();
-    renderPanel();
 });
